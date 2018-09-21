@@ -2,42 +2,56 @@
 #include <cstdlib>
 #include <fstream>
 #include <string>
+#include <iomanip>
+#include <cctype>
+
 using namespace std;
+
+typedef struct charFreq
+{
+   int totalChars;
+   float freq[256];
+   int count[256];
+   int sortedIndex[256];
+} charFreq;
+
 
 int main( int argc, char *argv[] )
 {
+   charFreq data;
 
    int charFreq[256];
-   int lineCnt = 0;
-   int unprintable = 0;
-   int printable = 0;
-   int BS = 0;
-   int HTab = 0;
-   int LF = 0;
-   int VTab = 0;
-   int FF = 0;
-   int CR = 0;
-   int totalC = 0;
+   int totalChars;
    int i;
    char c;
+
    string line;
 
    ifstream fpIn;
-   string inFilename, dataFile; 
-
-   cout << "Size of charFreq = " << sizeof(charFreq) << '\n';
-
-   for(i=0; i < 256; ++i)
-      charFreq[i] = 0;
+   ifstream fpDataIn;
+   ofstream fpDataOut;
+   string inFilename, dataFilename; 
 
    if(argc <= 2)
    {
       cout << "Usage: " << argv[0] << "<input filename> <data filename>\n";
       exit(1);
    }
-
    inFilename = argv[1];
-   dataFile = argv[2];
+   dataFilename = argv[2];
+
+   /*
+   fpDataIn.open(dataFilename, ios::in);
+   if(fpDataIn.is_open())
+   {
+      int value;
+      while(fpDataIn >> index >> value >> percentage)
+      {
+         data.count[index+128] = value;
+      }
+      fpDataIn.close();
+   }
+   */
 
    fpIn.open(inFilename, ios::in);
    if(!fpIn.is_open())
@@ -46,74 +60,41 @@ int main( int argc, char *argv[] )
       exit(2);
    }
 
-   //while(!fpIn.eof() )
-   //while(fpIn,getline(fpIn,line))
    while(fpIn.get(c))
    {
-      totalC++;
-      if(c == '\n')
-         lineCnt++;
-      if((c > 0) && (c < 32))
-      {
-         unprintable++;
-         if(c == 10)
-            LF++;
-         if(c == 11)
-            VTab++;
-         if(c == 12)
-            FF++;
-         if(c == 13)
-            CR++;
-         if(c == 8)
-            BS++;
-         if(c == 9)
-            HTab++;
-      }
+      data.count[tolower(c)+128]++;
+      data.totalChars++;
+   }
 
-      else
-      {
-         printable++;
-      }
-      //cout << charFreq[c];
-      ++charFreq[c+128];
-   }
+   for(int i = 0; i < 256; ++i)
+      data.freq[i] = (float)data.count[i]/data.totalChars;
    
-   if(!fpIn.eof())
+   for(int i = 0; i < 256; ++i)
    {
-      cout << "Error\n";
-      if(fpIn.bad())
-         cout << "Badbit set\n";
-      
+      data.sortedIndex[i] = 0;
    }
-   else
-      cout << "EOF\n";
+
+   for(int i = 0; i < 256; ++i)
+   {
+      int j = 0, k;
+      while(data.freq[i] > data.sortedIndex[j]) 
+         j++;
+      k = j;
+      while(data.sortedIndex[j] != 0)
+         j++;
+      for(int m = j; m > k; m--)
+         data.sortedIndex[m+1] = data.sortedIndex[m];
+      
+      data.sortedIndex[j] = data.freq[i]; 
+   }
+
    fpIn.close();
 
-   cout << lineCnt << '\n';
-   cout << unprintable << '\n';
-   cout << printable << '\n';
-   cout << "Total characters:" << totalC << '\n';
-   cout << "Char:(8): BS : " << BS << '\n';
-   cout << "Char:(9): HTab : " << HTab << '\n';
-   cout << "Char:(10): LF : " << LF << '\n';
-   cout << "Char:(11): VTab : " << VTab << '\n';
-   cout << "Char:(12): FF : " << FF << '\n';
-   cout << "Char:(13): CR : " << CR << '\n';
-
-
-   for(unsigned int i = 32; i < 128; ++i)
-   {
-      c = (char) i;
-      cout << "Char:(" << i<< "):" << c <<": " << charFreq[i+128] << '\n';
-   }
-
-   cout << '\n';
-
+   fpDataOut.open(dataFilename, ios::out);
+   fpDataOut << data.totalChars << ",";
+   for(int i = 0; i < 256; i++)
+      fpDataOut <<  data.freq[i] << "," << data.count[i] << "," << data.sortedIndex[i];
+   fpDataOut.close();
 
    return(0);
-
 }
-
-
-
-
